@@ -504,7 +504,12 @@ func (l *txList) Filter(costLimit *uint256.Int, gasLimit uint64) (types.Transact
 
 	// Filter out all the transactions above the account's funds
 	cost := uint256.NewInt(0)
-	removed := l.txs.Filter(func(tx *types.Transaction) bool {
+
+	// Acquire read/write lock on l.txs for filter and rehash operations
+	l.txs.m.Lock()
+	defer l.txs.m.Unlock()
+
+	removed := l.txs.filter(func(tx *types.Transaction) bool {
 		cost.SetFromBig(tx.Cost())
 		return tx.Gas() > gasLimit || cost.Gt(costLimit)
 	})
